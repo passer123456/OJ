@@ -6,4 +6,31 @@
         SELECT *  FROM `userData`
         ORDER BY user_id ASC
     </select>
+    <select id="selectUserList" resultType="com.onlinejudge.entity.User">
+        SELECT 
+            user_id as userId,
+            username,
+            password,
+            role
+        FROM userdata
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND title LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+            <if test="role != null and role != ''">
+                AND role = #{role}
+            </if>
+        </where>
+        ORDER BY user_id ASC
+    </select>
+    <insert id="insert">
+        INSERT INTO userdata (username, password, role)
+        VALUES (#{username}, #{password}, #{role})
+    </insert>
+    <delete id="delete">
+        DELETE FROM userdata WHERE user_id = #{userId}
+    </delete>
+    <select id="selectById" resultType="com.onlinejudge.entity.User">
+        SELECT * FROM problemdata WHERE user_id = #{userId}
+    </select>
 </mapper>
