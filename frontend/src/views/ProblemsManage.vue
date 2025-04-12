@@ -401,6 +401,7 @@ const handleAdd = () => {
 // 编辑题目
 const handleEdit = () => {
   if (!selectedProblem.value) return;
+  console.log(selectedProblem.value);
 
   isEditMode.value = true;
   dialogTitle.value = "编辑题目";
