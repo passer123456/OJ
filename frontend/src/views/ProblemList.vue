@@ -120,7 +120,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { Search } from "@element-plus/icons-vue";
-import axios from "@/views/utils/filterAxios.js";
+import axios from "@/utils/filterAxios.js";
 import { reactive } from "vue";
 
 // 筛选参数

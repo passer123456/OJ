@@ -39,8 +39,12 @@
       <el-button type="success" @click="handleAdd">
         <el-icon><Plus /></el-icon> 增加用户
       </el-button>
-      <el-button type="danger" :disabled="!selectedUser" @click="handleDelete">
-        <el-icon><Delete /></el-icon> 删除用户
+      <el-button
+        type="danger"
+        :disabled="selectedUsers.length === 0"
+        @click="handleDeleteBatch"
+      >
+        <el-icon><Delete /></el-icon> 批量删除
       </el-button>
       <el-button type="warning" :disabled="!selectedUser" @click="handleEdit">
         <el-icon><Edit /></el-icon> 修改用户
@@ -53,9 +57,10 @@
         :data="userList"
         stripe
         style="width: 100%"
-        @row-click="handleRowClick"
         highlight-current-row
+        @selection-change="handleSelectionChange"
       >
+        <el-table-column type="selection" width="55" />
         <el-table-column prop="userId" label="用户ID" width="100" />
         <el-table-column prop="username" label="用户名" width="150" />
         <el-table-column prop="password" label="密码" width="150" />
@@ -184,7 +189,7 @@
 <script setup>
 import { ref, onMounted, reactive } from "vue";
 import { Search, Plus, Delete, Edit } from "@element-plus/icons-vue";
-import axios from "@/views/utils/filterAxios.js";
+import axios from "@/utils/filterAxios.js";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 // 默认头像
@@ -205,6 +210,7 @@ const pagination = reactive({
 
 const userList = ref([]);
 const selectedUser = ref(null);
+const selectedUsers = ref([]);
 const dialogVisible = ref(false);
 const isEditMode = ref(false);
 const dialogTitle = ref("添加用户");
@@ -236,6 +242,7 @@ const userForm = reactive({
     ],
     role: [{ required: true, message: "请选择用户角色", trigger: "change" }],
   },
+  rows: [],
 });
 
 const load = async () => {
@@ -284,9 +291,10 @@ const resetFilter = () => {
   handleFilter();
 };
 
-// 行点击事件
-const handleRowClick = (row) => {
-  selectedUser.value = row;
+// 选中行事件
+const handleSelectionChange = (rows) => {
+  selectedUsers.value = rows;
+  console.log("选中的用户:", selectedUsers.value);
 };
 
 // 添加用户
@@ -357,6 +365,39 @@ const handleDelete = async () => {
 const handleDeleteUser = (row) => {
   selectedUser.value = row;
   handleDelete();
+};
+
+// 批量删除
+// 删除用户
+const handleDeleteBatch = async () => {
+  if (selectedUsers.value.length === 0) {
+    ElMessage.warning("请至少选择一条数据");
+    return;
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedUsers.value.length} 个用户吗？`,
+      "提示",
+      {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      }
+    );
+
+    await axios.delete(`/user/deleteBatch`, {
+      data: selectedUsers.value.map((user) => user.userId),
+    });
+
+    ElMessage.success("批量删除成功");
+    load();
+    selectedUsers.value = []; // 清空选中
+  } catch (error) {
+    if (error !== "cancel") {
+      ElMessage.error("删除失败");
+    }
+  }
 };
 
 // 头像上传成功

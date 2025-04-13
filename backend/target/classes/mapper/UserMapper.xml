@@ -7,11 +7,7 @@
         ORDER BY user_id ASC
     </select>
     <select id="selectUserList" resultType="com.onlinejudge.entity.User">
-        SELECT 
-            user_id as userId,
-            username,
-            password,
-            role
+        SELECT *
         FROM userdata
         <where>
             <if test="keyword != null and keyword != ''">
@@ -24,13 +20,21 @@
         ORDER BY user_id ASC
     </select>
     <insert id="insert">
-        INSERT INTO userdata (username, password, role)
-        VALUES (#{username}, #{password}, #{role})
+        INSERT INTO userdata (username, password, role,avatar, bio)
+        VALUES (#{username}, #{password}, #{role}, #{avatar}, #{bio})
     </insert>
     <delete id="delete">
         DELETE FROM userdata WHERE user_id = #{userId}
     </delete>
     <select id="selectById" resultType="com.onlinejudge.entity.User">
         SELECT * FROM problemdata WHERE user_id = #{userId}
+    </select>
+    <update id="updateById">
+        UPDATE userdata
+        SET username = #{username}, password = #{password}, role = #{role},avatar = #{avatar}, bio = #{bio}
+        WHERE user_id = #{userId}
+    </update>
+    <select id="selectByUsername" resultType="com.onlinejudge.entity.User">
+        SELECT * FROM userdata WHERE username = #{username}
     </select>
 </mapper>

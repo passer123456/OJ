@@ -47,9 +47,10 @@
           <el-icon :size="20"><Bell /></el-icon>
         </el-button>
         <el-dropdown>
-          <span class="user-avatar">
+          <div class="user-info">
             <el-avatar :size="30" :src="avatarUrl" />
-          </span>
+            <span class="username">{{ username }}</span>
+          </div>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item @click="emit('profile')"
@@ -89,6 +90,10 @@ const props = defineProps({
     type: String,
     default:
       "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png",
+  },
+  username: {
+    type: String,
+    default: "用户",
   },
 });
 
@@ -156,9 +161,14 @@ const handleNoticeClick = () => {
   min-width: 300px; /* 防止挤压 */
   justify-content: flex-end;
 }
-.user-avatar {
-  margin-left: 10px;
+.user-info {
+  display: flex;
+  align-items: center;
   cursor: pointer;
+}
+.username {
+  margin-left: 8px;
+  color: white;
 }
 
 /* 工作区域 */

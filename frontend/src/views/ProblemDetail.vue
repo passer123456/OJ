@@ -193,7 +193,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { Star, ChatDotRound, Setting } from "@element-plus/icons-vue";
-import axios from "@/views/utils/filterAxios.js";
+import axios from "@/utils/filterAxios.js";
 
 const route = useRoute();
 

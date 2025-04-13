@@ -27,6 +27,9 @@ public class UserService {
     }
 
     public void add(User user) {
+        if(userMapper.selectByUsername(user.getUsername()) != null){
+            throw new RuntimeException("用户名存在");
+        }
         userMapper.insert(user);
     }
 
@@ -36,5 +39,24 @@ public class UserService {
 
     public User selectById(int id) {
         return userMapper.selectById(id);
+    }
+
+    public void update(User user) {
+        userMapper.updateById(user);
+    }
+
+    public User login(User user) {
+        User dbUser=userMapper.selectByUsername(user.getUsername());
+        if(dbUser==null){
+            throw new RuntimeException("用户不存在");
+        }
+        if(!dbUser.getPassword().equals(user.getPassword())){
+            throw new RuntimeException("账号或密码错误");
+        }
+        return dbUser;
+    }
+
+    public void register(User user) {
+        add(user);
     }
 }

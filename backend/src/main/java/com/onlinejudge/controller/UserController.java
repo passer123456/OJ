@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/api/user")
 public class UserController {
 
     @Autowired
@@ -58,10 +58,38 @@ public class UserController {
 		return Result.success("删除成功");
 	}
 
-    @PutMapping("update/{id}")
-    public String putMethodName(@PathVariable String id, @RequestBody String entity) {
-        //TODO: process PUT request
-        
-        return entity;
+    @DeleteMapping("/deleteBatch")
+    public Result deleteBatch(@RequestBody List<Integer> ids)
+    {
+        for (int id : ids) {
+            userService.delete(id);
+        }
+        return Result.success("批量删除成功");
+    }
+
+    @PutMapping("/update")
+    public Result update(@RequestBody User user) {
+        userService.update(user);     
+        return Result.success("更新成功");
+    }
+
+    @PostMapping("/login")
+    public Result login(@RequestBody User user) {
+        User dbUser=userService.login(user);    
+        return Result.success(dbUser);
+    }
+
+    @PostMapping("/register")
+    public Result register(@RequestBody User user) {
+        try {
+            userService.register(user);
+            return Result.success("注册成功");
+        } catch (RuntimeException e) {
+            // 捕获用户名已存在的异常
+            return Result.error(400, e.getMessage()); 
+        } catch (Exception e) {
+            // 其他错误（如数据库问题）
+            return Result.error(500, "注册失败: " + e.getMessage());
+        }
     }
 }

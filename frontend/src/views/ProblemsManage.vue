@@ -236,7 +236,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { Search, Plus, Delete, Edit } from "@element-plus/icons-vue";
-import axios from "@/views/utils/filterAxios.js";
+import axios from "@/utils/filterAxios.js";
 import { reactive } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 // import { te } from "element-plus/es/locale";

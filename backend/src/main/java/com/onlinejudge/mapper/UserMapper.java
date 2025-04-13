@@ -26,4 +26,10 @@ public interface UserMapper
 
     // 根据ID查询用户
     User selectById(int id);
+
+    // 根据ID更新用户
+    void updateById(User user);
+
+    // 根据用户名查询用户
+    User selectByUsername(String username);
 }

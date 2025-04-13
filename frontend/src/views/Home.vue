@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import axios from "@/views/utils/filterAxios.js";
+import axios from "@/utils/filterAxios.js";
 
 axios
   .get("/user/selectAll")
