@@ -86,7 +86,6 @@ const handleLogin = async () => {
     console.log(res);
 
     // 存储token和用户信息
-    // localStorage.setItem("token", res.data.token);
     localStorage.setItem("user", JSON.stringify(res.data || {}));
 
     ElMessage.success("登录成功");

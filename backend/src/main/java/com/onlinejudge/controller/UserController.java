@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.onlinejudge.service.UserService;
+import com.onlinejudge.utils.LoginInfo;
 import com.onlinejudge.utils.Result;
 import com.github.pagehelper.PageInfo;
 import com.onlinejudge.entity.User;
@@ -75,8 +76,8 @@ public class UserController {
 
     @PostMapping("/login")
     public Result login(@RequestBody User user) {
-        User dbUser=userService.login(user);    
-        return Result.success(dbUser);
+        LoginInfo loginInfo=userService.login(user);    
+        return Result.success(loginInfo);
     }
 
     @PostMapping("/register")

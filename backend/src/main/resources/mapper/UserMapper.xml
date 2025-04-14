@@ -27,7 +27,7 @@
         DELETE FROM userdata WHERE user_id = #{userId}
     </delete>
     <select id="selectById" resultType="com.onlinejudge.entity.User">
-        SELECT * FROM problemdata WHERE user_id = #{userId}
+        SELECT * FROM userdata WHERE user_id = #{userId}
     </select>
     <update id="updateById">
         UPDATE userdata
