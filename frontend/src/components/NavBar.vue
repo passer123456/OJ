@@ -53,10 +53,10 @@
           </div>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item @click="emit('profile')"
+              <el-dropdown-item @click="handleProfileClick"
                 >个人中心</el-dropdown-item
               >
-              <el-dropdown-item @click="emit('logout')"
+              <el-dropdown-item @click="handleLogout"
                 >退出登录</el-dropdown-item
               >
             </el-dropdown-menu>
@@ -68,9 +68,10 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { ref, watch, computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { Search, Bell } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 
 const props = defineProps({
   menuItems: {
@@ -88,19 +89,52 @@ const props = defineProps({
   },
   avatarUrl: {
     type: String,
-    default:
-      "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png",
+    default: "",
   },
   username: {
     type: String,
-    default: "用户",
+    default: "",
   },
 });
 
 const emit = defineEmits(["notice-click", "profile", "logout"]);
 
 const route = useRoute();
+const router = useRouter();
 const activeIndex = ref(route.path);
+
+// 计算属性获取用户名
+const username = computed(() => {
+  if (props.username) return props.username;
+  const user = JSON.parse(localStorage.getItem("user")) || {
+    username: "未登录",
+  };
+  return user?.username || "未登录";
+});
+
+// 计算属性获取头像URL
+const avatarUrl = computed(() => {
+  if (props.avatarUrl) return props.avatarUrl;
+  const user = JSON.parse(localStorage.getItem("user")) || {};
+  console.log(user.avatar);
+  return (
+    user?.avatar ||
+    "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"
+  );
+});
+
+// 处理个人中心点击
+const handleProfileClick = () => {
+  emit("profile");
+  router.push("/profile"); // 跳转到个人中心页面
+};
+
+//登出
+const handleLogout = () => {
+  localStorage.removeItem("user");
+  emit("logout");
+  location.href = "/login";
+};
 
 watch(
   () => route.path,
@@ -110,7 +144,7 @@ watch(
 );
 
 const handleNoticeClick = () => {
-  emit("notice-click");
+  ElMessage.info("这是公告");
 };
 </script>
 

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import com.onlinejudge.mapper.UserMapper;
 import com.onlinejudge.utils.LoginInfo;
 import com.onlinejudge.utils.TokenUtil;
+import com.onlinejudge.exception.CustomException;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.onlinejudge.entity.User;
@@ -49,14 +50,14 @@ public class UserService {
 
     public LoginInfo login(User user) {
         User dbUser=userMapper.selectByUsername(user.getUsername());
+        LoginInfo loginInfo = new LoginInfo();
         if(dbUser==null){
-            throw new RuntimeException("用户不存在");
+            throw new CustomException("用户不存在");
         }
         if(!dbUser.getPassword().equals(user.getPassword())){
-            throw new RuntimeException("账号或密码错误");
+            throw new CustomException("账号或密码错误");
         }
         // 生成token
-        LoginInfo loginInfo = new LoginInfo();
         loginInfo.setUserId(dbUser.getUserId());
         loginInfo.setUsername(dbUser.getUsername());
         loginInfo.setRole(dbUser.getRole());

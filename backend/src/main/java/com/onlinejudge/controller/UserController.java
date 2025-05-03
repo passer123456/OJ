@@ -2,6 +2,8 @@ package com.onlinejudge.controller;
 
 import java.util.List;
 
+import javax.security.auth.login.LoginException;
+
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -11,6 +13,7 @@ import com.onlinejudge.utils.LoginInfo;
 import com.onlinejudge.utils.Result;
 import com.github.pagehelper.PageInfo;
 import com.onlinejudge.entity.User;
+import com.onlinejudge.exception.CustomException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -46,6 +49,15 @@ public class UserController {
         return Result.success(pageInfo);
     }
 
+    @GetMapping("/selectById/{id}")
+    public Result selectById(@PathVariable int id) {
+        User user = userService.selectById(id);
+        if (user == null) {
+            return Result.error(404, "用户不存在");
+        }
+        return Result.success(user);
+    }
+
     @PostMapping("/add")
     public Result add(@RequestBody User user) {
         userService.add(user);
@@ -76,8 +88,14 @@ public class UserController {
 
     @PostMapping("/login")
     public Result login(@RequestBody User user) {
-        LoginInfo loginInfo=userService.login(user);    
-        return Result.success(loginInfo);
+        try {
+            LoginInfo loginInfo = userService.login(user);
+            return Result.success(loginInfo);
+        } catch (CustomException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error(500, "系统错误，请稍后再试");
+        }
     }
 
     @PostMapping("/register")

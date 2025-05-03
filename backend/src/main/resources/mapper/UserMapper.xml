@@ -31,7 +31,13 @@
     </select>
     <update id="updateById">
         UPDATE userdata
-        SET username = #{username}, password = #{password}, role = #{role},avatar = #{avatar}, bio = #{bio}
+        <set>
+            <if test="username != null">username = #{username},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="role != null">role = #{role},</if>
+            <if test="avatar != null">avatar = #{avatar},</if>
+            <if test="bio != null">bio = #{bio}</if>
+        </set>
         WHERE user_id = #{userId}
     </update>
     <select id="selectByUsername" resultType="com.onlinejudge.entity.User">

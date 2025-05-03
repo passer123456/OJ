@@ -68,6 +68,16 @@ const router = createRouter({
       },
     },
     {
+      path: "/profile",
+      name: "Profile",
+      component: () => import("../views/Profile.vue"),
+      props: true,
+      meta: {
+        requiresAuth: true,
+        role: null, // 设置为 null 表示允许所有角色
+      },
+    },
+    {
       path: "/:pathMatch(.*)*",
       redirect: "/login",
     },

@@ -83,12 +83,15 @@ const handleLogin = async () => {
     loading.value = true;
 
     const res = await axios.post("/user/login", form.value);
-    console.log(res);
+
+    if (res.code !== 200) {
+      throw new Error(res.msg || "登录失败");
+    }
 
     // 存储token和用户信息
     localStorage.setItem("user", JSON.stringify(res.data || {}));
 
-    ElMessage.success("登录成功");
+    ElMessage.success(res.data.msg || "登录成功");
 
     // 根据角色跳转
     if (res.data.role === "admin") {
@@ -101,8 +104,10 @@ const handleLogin = async () => {
       // 表单验证错误（由 Element Plus 抛出）
       ElMessage.warning("请检查表单输入是否正确");
     } else {
-      // 网络或 API 错误
-      ElMessage.error(error.message || "登录失败");
+      // 处理所有其他错误
+      const errorMessage =
+        error.response?.data?.msg || error.message || "登录失败，请稍后再试";
+      ElMessage.error(errorMessage);
     }
   } finally {
     loading.value = false;
