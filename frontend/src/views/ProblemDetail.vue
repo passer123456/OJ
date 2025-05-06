@@ -11,8 +11,12 @@
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item>个人中心</el-dropdown-item>
-              <el-dropdown-item>退出登录</el-dropdown-item>
+              <el-dropdown-item @click="handleProfileClick"
+                >个人中心</el-dropdown-item
+              >
+              <el-dropdown-item @click="handleLogout"
+                >退出登录</el-dropdown-item
+              >
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -73,16 +77,16 @@
 
           <el-tab-pane label="提交记录" name="submissions">
             <el-table :data="submissions" style="width: 100%">
-              <el-table-column prop="id" label="ID" width="80" />
-              <el-table-column prop="status" label="状态" width="120">
+              <el-table-column prop="submitId" label="ID" width="80" />
+              <el-table-column prop="result" label="状态" width="120">
                 <template #default="{ row }">
-                  <el-tag :type="getStatusTagType(row.status)">
-                    {{ row.status }}
+                  <el-tag :type="getStatusTagType(row.result)">
+                    {{ row.result }}
                   </el-tag>
                 </template>
               </el-table-column>
               <el-table-column prop="language" label="语言" width="100" />
-              <el-table-column prop="runtime" label="执行用时" width="100" />
+              <el-table-column prop="time" label="执行用时" width="100" />
               <el-table-column prop="memory" label="内存消耗" width="100" />
               <el-table-column prop="submitTime" label="提交时间" />
             </el-table>
@@ -167,86 +171,167 @@
         </div>
 
         <!-- 执行结果 -->
-        <div class="execution-result" v-if="executionResult">
-          <h3>执行结果：</h3>
-          <div class="result-content">
-            <div v-if="executionResult.status === 'success'">
-              <el-tag type="success">通过</el-tag>
-              <p>执行用时: {{ executionResult.runtime }} ms</p>
-              <p>内存消耗: {{ executionResult.memory }} MB</p>
+        <el-dialog
+          v-model="showResultDialog"
+          title="提交结果"
+          width="70%"
+          top="5vh"
+          destroy-on-close
+        >
+          <div v-if="submissionResult" class="result-dialog-content">
+            <!-- 用户代码 -->
+            <div class="code-section">
+              <h3>你的代码</h3>
+              <pre class="code-block">{{ code }}</pre>
             </div>
-            <div v-else>
-              <el-tag type="danger">错误</el-tag>
-              <p>{{ executionResult.message }}</p>
-              <pre v-if="executionResult.error">{{
-                executionResult.error
-              }}</pre>
+
+            <!-- 执行结果 -->
+            <div class="result-section">
+              <h3>执行结果</h3>
+
+              <div class="status-info">
+                <el-tag
+                  :type="
+                    submissionResult.errno === 0
+                      ? 'success'
+                      : submissionResult.errno === 1
+                      ? 'danger'
+                      : 'warning'
+                  "
+                >
+                  {{
+                    submissionResult.errno === 0
+                      ? "编译通过"
+                      : submissionResult.errno === 1
+                      ? "编译错误"
+                      : "运行时错误"
+                  }}
+                </el-tag>
+
+                <div class="metrics">
+                  <span v-if="submissionResult.score" class="metric">
+                    <strong>得分:</strong> {{ submissionResult.score }}
+                  </span>
+                  <span v-if="submissionResult.memory" class="metric">
+                    <strong>内存消耗:</strong>
+                    {{ submissionResult.memory }}
+                  </span>
+                  <span v-if="submissionResult.runtime" class="metric">
+                    <strong>运行时间:</strong>
+                    {{ submissionResult.runtime }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- 输出内容 -->
+              <div
+                v-if="
+                  submissionResult.compile_error ||
+                  submissionResult.stdout ||
+                  submissionResult.stderr
+                "
+                class="output-content"
+              >
+                <div v-if="submissionResult.errno === 1" class="compile-error">
+                  <h4>编译错误信息</h4>
+                  <pre>{{ submissionResult.compile_error }}</pre>
+                </div>
+
+                <template v-else>
+                  <div v-if="submissionResult.stdout" class="stdout">
+                    <h4>标准输出</h4>
+                    <pre>{{ submissionResult.stdout }}</pre>
+                  </div>
+
+                  <div v-if="submissionResult.stderr" class="stderr">
+                    <h4>错误输出</h4>
+                    <pre>{{ submissionResult.stderr }}</pre>
+                  </div>
+                </template>
+              </div>
             </div>
           </div>
-        </div>
+
+          <template #footer>
+            <el-button type="primary" @click="showResultDialog = false"
+              >关闭</el-button
+            >
+          </template>
+        </el-dialog>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { ref, computed, onMounted, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { Star, ChatDotRound, Setting } from "@element-plus/icons-vue";
 import axios from "@/utils/filterAxios.js";
+import { ElMessage } from "element-plus";
 
+const router = useRouter();
 const route = useRoute();
 
-// 用户信息
+// 用户数据
 const user = ref({
-  username: "当前用户",
-  avatar: "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png",
+  username: computed(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user")) || {
+      username: "未登录",
+    };
+    return storedUser.username;
+  }),
+  avatar: computed(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+    return (
+      storedUser.avatar ||
+      "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"
+    );
+  }),
 });
+
+// 处理个人中心点击
+const handleProfileClick = () => {
+  router.push("/profile"); // 跳转到个人中心页面
+};
+
+//登出
+const handleLogout = () => {
+  localStorage.removeItem("user");
+  location.href = "/login";
+};
 
 // 题目数据
 const problem = ref({
-  id: 1,
-  title: "两数之和",
-  description: `给定一个整数数组 nums 和一个整数目标值 target，请你在该数组中找出 和为目标值 target  的那 两个 整数，并返回它们的数组下标。
-
-你可以假设每种输入只会对应一个答案。但是，数组中同一个元素在答案里不能重复出现。
-
-你可以按任意顺序返回答案。
-
-**示例 1：**
-
-\`\`\`
-输入：nums = [2,7,11,15], target = 9
-输出：[0,1]
-解释：因为 nums[0] + nums[1] == 9 ，返回 [0, 1] 。
-\`\`\`
-
-**示例 2：**
-
-\`\`\`
-输入：nums = [3,2,4], target = 6
-输出：[1,2]
-\`\`\`
-
-**示例 3：**
-
-\`\`\`
-输入：nums = [3,3], target = 6
-输出：[0,1]
-\`\`\`
-
-**提示：**
-
-- 2 <= nums.length <= 10^4
-- -10^9 <= nums[i] <= 10^9
-- -10^9 <= target <= 10^9
-- 只会存在一个有效答案`,
-  difficulty: "medium",
-  submitCount: 12543,
-  acceptCount: 8765,
-  sampleInput: "nums = [2,7,11,15]\ntarget = 9",
-  sampleOutput: "[0,1]",
+  id: null,
+  title: "",
+  description: ``,
+  difficulty: "",
+  submitCount: 0,
+  acceptCount: 0,
+  sampleInput: "",
+  sampleOutput: "",
+  templateCode: "",
+  testCode: "",
 });
+
+const fetchProblem = async (id) => {
+  try {
+    const res = await axios.get(`/problem/${id}`);
+    problem.value = res.data;
+    // 加载提交记录
+    await loadSubmissions(id);
+
+    // 如果有提交记录，使用最新记录的代码
+    if (submissions.value.length > 0) {
+      code.value = latestSubmission.value.code;
+    } else {
+      resetCode(); // 没有记录则使用默认模板
+    }
+  } catch (err) {
+    ElMessage.error("题目加载失败");
+  }
+};
 
 // 标签页
 const activeTab = ref("description");
@@ -315,41 +400,56 @@ const constraints = computed(() => {
 });
 
 // 提交记录
-const submissions = ref([
-  {
-    id: 1,
-    status: "通过",
-    language: "Java",
-    runtime: "2 ms",
-    memory: "41.5 MB",
-    submitTime: "2023-05-15 14:30",
-  },
-  {
-    id: 2,
-    status: "解答错误",
-    language: "Python",
-    runtime: "N/A",
-    memory: "N/A",
-    submitTime: "2023-05-14 09:15",
-  },
-  {
-    id: 3,
-    status: "执行出错",
-    language: "C++",
-    runtime: "N/A",
-    memory: "N/A",
-    submitTime: "2023-05-13 16:45",
-  },
-]);
+const submissions = ref([{}]);
+const showResultDialog = ref(false);
+const submissionResult = ref({
+  errno: 0,
+  compile_error: null,
+  stdout: null,
+  stderr: null,
+  score: 0,
+  memory: null,
+  runtime: null,
+});
+
+const latestSubmission = computed(() => {
+  if (!submissions.value || submissions.value.length === 0) return null;
+
+  // 过滤掉没有submitTime的记录
+  const validSubmissions = submissions.value.filter((sub) => sub.submitTime);
+
+  if (validSubmissions.length === 0) return null;
+
+  // 按提交时间降序排序
+  const sorted = [...validSubmissions].sort((a, b) => {
+    return new Date(b.submitTime) - new Date(a.submitTime);
+  });
+
+  return sorted[0];
+});
+
+const loadSubmissions = async (problemId) => {
+  try {
+    const userId = JSON.parse(localStorage.getItem("user"))?.userId || null;
+    const res = await axios.get("/record/select", {
+      params: {
+        userId,
+        problemId,
+      },
+    });
+    submissions.value = res.data || [];
+  } catch (error) {
+    console.error("加载提交记录失败:", error);
+    ElMessage.error("加载提交记录失败");
+  }
+};
 
 const getStatusTagType = (status) => {
   switch (status) {
-    case "通过":
+    case "solved":
       return "success";
-    case "解答错误":
+    case "unsolved":
       return "danger";
-    case "执行出错":
-      return "warning";
     default:
       return "info";
   }
@@ -425,19 +525,15 @@ var twoSum = function(nums, target) {
 };`,
 };
 
-// 初始化代码编辑器
-onMounted(() => {
-  resetCode();
-});
-
 // 切换语言
 const handleLanguageChange = (lang) => {
-  code.value = codeTemplates[lang];
+  currentLanguage.value = lang;
 };
 
 // 重置代码
 const resetCode = () => {
-  code.value = codeTemplates[currentLanguage.value];
+  code.value =
+    problem.value.templateCode || codeTemplates[currentLanguage.value];
 };
 
 // 打开设置
@@ -480,32 +576,53 @@ const submitSolution = async () => {
   }
 
   try {
-    // 模拟API调用
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const request = {
+      id: problem.value.problemid, // 题目ID
+      userId: JSON.parse(localStorage.getItem("user"))?.userId || null, // 用户ID
+      language: currentLanguage.value, // 当前选择的语言
+      testCode: problem.value.testCode, // 题目测试代码
+      userCode: code.value, // 用户代码（与code字段相同）
+    };
 
-    ElMessage.success("提交成功");
+    const response = await axios.post("/record/submit", request);
 
-    // 添加到提交记录
-    submissions.value.unshift({
-      id: submissions.value.length + 1,
-      status: Math.random() > 0.3 ? "通过" : "解答错误",
-      language: currentLanguage.value,
-      runtime:
-        Math.random() > 0.3
-          ? `${Math.floor(Math.random() * 10) + 1} ms`
-          : "N/A",
-      memory:
-        Math.random() > 0.3
-          ? `${(Math.random() * 2 + 38).toFixed(1)} MB`
-          : "N/A",
-      submitTime: new Date().toLocaleString(),
-    });
+    console.log("提交结果:", response.data);
 
+    if (response.code == 200) {
+      ElMessage.success("提交成功");
+      submissionResult.value = response.data;
+      showResultDialog.value = true;
+      loadSubmissions(problem.value.problemid); // 重新加载提交记录
+    }
     executionResult.value = null;
   } catch (error) {
     ElMessage.error("提交失败: " + error.message);
   }
 };
+
+watch(
+  () => route.path,
+  (path) => {
+    activeIndex.value = path;
+  }
+);
+
+watch(
+  () => Number(route.params.id),
+  (newId) => {
+    if (newId) fetchProblem(newId);
+  },
+  { immediate: true }
+);
+
+onMounted(() => {
+  const problemId = Number(route.params.id);
+  if (problemId) {
+    fetchProblem(problemId);
+  } else {
+    resetCode();
+  }
+});
 </script>
 
 <style scoped>
@@ -745,6 +862,64 @@ const submitSolution = async () => {
 
 .discussion-footer .el-icon {
   margin-right: 3px;
+}
+
+.result-dialog-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.code-section,
+.result-section {
+  margin-bottom: 20px;
+}
+
+.code-section h3,
+.result-section h3 {
+  margin-top: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.code-block,
+pre {
+  background-color: #f6f8fa;
+  padding: 12px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  font-family: "Courier New", monospace;
+  line-height: 1.5;
+}
+
+.status-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.metrics {
+  display: flex;
+  gap: 15px;
+}
+
+.metric {
+  font-size: 14px;
+}
+
+.output-content h4 {
+  margin: 15px 0 8px 0;
+  font-size: 15px;
+}
+
+.compile-error pre {
+  background-color: #fef0f0;
+  color: #f56c6c;
+}
+
+.stderr pre {
+  background-color: #fef0f0;
+  color: #f56c6c;
 }
 </style>
 <style lang="scss" scoped></style>

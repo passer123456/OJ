@@ -1,0 +1,10 @@
+.\tmp\3\2\Solution.java:1: 错误: 非法的类型开始
+class Solution { public:     vector<vector<string>> groupAnagrams(vector<string>& strs) {          } null}
+                       ^
+.\tmp\3\2\Solution.java:1: 错误: 需要<标识符>
+class Solution { public:     vector<vector<string>> groupAnagrams(vector<string>& strs) {          } null}
+                                                                                ^
+.\tmp\3\2\Solution.java:1: 错误: 非法的类型开始
+class Solution { public:     vector<vector<string>> groupAnagrams(vector<string>& strs) {          } null}
+                                                                                                     ^
+3 个错误

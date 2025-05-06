@@ -34,6 +34,11 @@ const router = createRouter({
           component: () => import("../views/Home.vue"),
           meta: { requiresAuth: true, role: "user" },
         },
+        {
+          path: "submitrecord",
+          component: () => import("../views/SubmitRecordList.vue"),
+          meta: { requiresAuth: true, role: "user" },
+        },
       ],
     },
     {

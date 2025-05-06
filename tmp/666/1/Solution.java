@@ -1,5 +1,5 @@
 public class Solution {
     public static void main(String[] args) {
-        System.out.println("score=80");
+        System.out.println("得分score=80");
     }
 }

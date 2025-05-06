@@ -5,8 +5,9 @@ import lombok.Data;
 @Data
 public class Request {
     private int id;
+    private int userId;     
     private String code;
-    private int userId;
+    private String language;
     private String testCode;
     private String userCode;
 
@@ -18,7 +19,7 @@ public class Request {
         return userCode.substring(0, pos) + testCode + "}";
     }
 
-    public String generateMergedCode() {
-        return mergeCode(this.userCode, this.testCode);
+    public void generateMergedCode() {
+        this.code=mergeCode(this.userCode, this.testCode);
     }
 }

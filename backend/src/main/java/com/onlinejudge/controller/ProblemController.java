@@ -61,5 +61,5 @@ public class ProblemController {
     public Result getProblemById(@PathVariable int id) {
         Problem problem = problemService.selectById(id);
     return Result.success(problem);
-}
+    }
 }

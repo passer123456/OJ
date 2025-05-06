@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.onlinejudge.mapper.RecordMapper">
+    <select id="selectPage" resultType="com.onlinejudge.entity.Record">
+        SELECT * FROM submitrecorddata
+        <where>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+            <if test="problemId != null">
+                AND problem_id = #{problemId}
+            </if>
+        </where>
+        ORDER BY problem_id ASC
+    </select>
+    <insert id="insert" useGeneratedKeys="true" keyProperty="submitId" keyColumn="submit_id">
+    INSERT INTO submitrecorddata 
+    (user_id, problem_id, language, code, time, memory, score, submit_time, result)
+    VALUES 
+    (#{userId}, #{problemId}, #{language}, #{code}, #{time}, #{memory}, #{score}, #{submitTime}, #{result})
+    </insert>
+    <delete id="delete">
+        DELETE FROM submitrecorddata WHERE submitId = #{submitId}
+    </delete>
+    <select id="selectById" resultType="com.onlinejudge.entity.Record">
+        SELECT * FROM submitrecorddata WHERE submitId = #{submitId}
+    </select>
+</mapper>

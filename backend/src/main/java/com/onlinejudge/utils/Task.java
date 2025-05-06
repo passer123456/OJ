@@ -1,18 +1,14 @@
-package com.onlinejudge.service;
+package com.onlinejudge.utils;
 
 import com.onlinejudge.entity.Answer;
 import com.onlinejudge.entity.Request;
-import com.onlinejudge.utils.CommandUtil;
-import com.onlinejudge.utils.FileUtil;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.springframework.stereotype.Service;
-
-@Service
 // 这个类表示一个完整的编译运行的过程
 public class Task {
     // 此处罗列出需要的临时文件(用于进程间通信)文件名约定
@@ -49,12 +45,12 @@ public class Task {
     public static String formatTime(long time) {
         long seconds = time / 1000;       // 计算秒数
         long milliseconds = time % 1000;  // 计算剩余的毫秒数
-        return seconds + "秒 " + milliseconds + "毫秒";
+        return seconds + "s " + milliseconds + "ms";
     }
 
     public static String formatMemory(long memory) {
         if (memory < 1024) {
-            return memory + " 字节";
+            return memory + " B";
         } else if (memory < 1024 * 1024) {
             return String.format("%.2f KB", memory / 1024.0);
         } else if (memory < 1024 * 1024 * 1024) {
@@ -99,7 +95,7 @@ public class Task {
         }
 
         // 构造运行指令
-        String runCmd = String.format("java -classpath %s %s", WORK_DIR, CLASS);
+        String runCmd = String.format("java -Dfile.encoding=UTF-8 -classpath %s %s", WORK_DIR, CLASS);
         System.out.println("runCmd: " + runCmd);
 
         Runtime runtime = Runtime.getRuntime();
@@ -127,10 +123,13 @@ public class Task {
         // 把最终结果构造成 Answer 对象, 并返回
         answer.setErrno(0);
         String runStdout = FileUtil.readFile(STDOUT);
+        System.out.println(new String(runStdout.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8));
+        System.out.println("stdout: " + runStdout);
         answer.setStdout(runStdout);
         answer.setScore(extractScore(runStdout));
         answer.setRuntime(formatTime(elapsedTime));
         answer.setMemory(formatMemory(memoryUsed));
+        System.out.println(answer);
         return answer;
     }
 
@@ -139,12 +138,11 @@ public class Task {
         Request question = new Request();
         question.setCode("public class Solution {\n" +
                 "    public static void main(String[] args) {\n" +
-                "        System.out.println(\"score=80\");\n" +
+                "        System.out.println(\"得分score=80\");\n" +
                 "    }\n" +
                 "}\n");
         question.setId(1);
         question.setUserId(666);
         Answer answer = task.compileAndRun(question);
-        System.out.println(answer);
     }
 }

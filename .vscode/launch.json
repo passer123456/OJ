@@ -6,6 +6,13 @@
   "configurations": [
     {
       "type": "java",
+      "name": "Task",
+      "request": "launch",
+      "mainClass": "com.onlinejudge.utils.Task",
+      "projectName": "oj"
+    },
+    {
+      "type": "java",
       "name": "OJSystem",
       "request": "launch",
       "mainClass": "com.onlinejudge.OJSystem",
