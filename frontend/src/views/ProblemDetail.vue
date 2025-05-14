@@ -632,19 +632,24 @@ const fetchComments = async () => {
   try {
     const response = await axios.get(`/comments/problem/${route.params.id}`);
     comments.value = response.data || [];
-    // 并行加载所有点赞状态
-    await Promise.all(
-      comments.value.map(async (comment) => {
+
+    // 重置点赞状态，避免旧数据污染
+    commentLikes.value = {};
+
+    // 递归检查所有评论（包括回复）的点赞状态
+    const checkAllLikes = async (commentList) => {
+      for (const comment of commentList) {
+        // 检查当前评论的点赞状态
         commentLikes.value[comment.id] = await checkLikeStatus(comment.id);
-        if (comment.replies) {
-          await Promise.all(
-            comment.replies.map((reply) => {
-              commentLikes.value[reply.id] = checkLikeStatus(reply.id);
-            })
-          );
+
+        // 递归处理回复
+        if (comment.replies?.length) {
+          await checkAllLikes(comment.replies);
         }
-      })
-    );
+      }
+    };
+
+    await checkAllLikes(comments.value);
   } catch (error) {
     ElMessage.error("获取评论失败");
   }
