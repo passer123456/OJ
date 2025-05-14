@@ -93,27 +93,139 @@
           </el-tab-pane>
 
           <el-tab-pane label="讨论区" name="discussions">
-            <div class="discussion-list">
-              <div
-                v-for="discussion in discussions"
-                :key="discussion.id"
-                class="discussion-item"
-              >
-                <div class="discussion-header">
-                  <el-avatar :size="30" :src="discussion.author.avatar" />
-                  <span class="author-name">{{ discussion.author.name }}</span>
-                  <span class="post-time">{{ discussion.time }}</span>
-                </div>
-                <h4 class="discussion-title">{{ discussion.title }}</h4>
-                <p class="discussion-content">{{ discussion.content }}</p>
-                <div class="discussion-footer">
-                  <span class="like-count">
-                    <el-icon><Star /></el-icon> {{ discussion.likes }}
-                  </span>
-                  <span class="comment-count">
-                    <el-icon><ChatDotRound /></el-icon>
-                    {{ discussion.comments }}
-                  </span>
+            <div class="comment-section">
+              <!-- 评论表单 -->
+              <div class="comment-form">
+                <el-input
+                  v-model="newComment.content"
+                  type="textarea"
+                  :rows="3"
+                  placeholder="写下你的评论..."
+                />
+                <el-button
+                  type="primary"
+                  @click="submitComment"
+                  :disabled="!newComment.content.trim() || !currentUserId"
+                >
+                  发表评论
+                </el-button>
+              </div>
+
+              <!-- 评论列表 -->
+              <div class="comment-list">
+                <div
+                  v-for="comment in comments"
+                  :key="comment.id"
+                  class="comment-item"
+                >
+                  <div class="comment-header">
+                    <el-avatar
+                      :size="30"
+                      :src="getUserAvatar(comment.userId)"
+                    />
+                    <div class="comment-user-info">
+                      <span class="user-name">{{
+                        getUserName(comment.userId)
+                      }}</span>
+                      <span class="comment-time">{{
+                        formatDate(comment.createTime)
+                      }}</span>
+                    </div>
+                  </div>
+                  <div class="comment-content">{{ comment.content }}</div>
+                  <div class="comment-actions">
+                    <el-button
+                      size="small"
+                      @click="toggleLike(comment.id)"
+                      :type="commentLikes[comment.id] ? 'primary' : ''"
+                      :disabled="!currentUserId"
+                    >
+                      <el-icon><Star /></el-icon> {{ comment.likeCount }}
+                    </el-button>
+                    <el-button
+                      size="small"
+                      @click="showReplyForm(comment.id)"
+                      :disabled="!currentUserId"
+                    >
+                      回复
+                    </el-button>
+                    <el-button
+                      v-if="comment.userId === currentUserId"
+                      size="small"
+                      type="danger"
+                      @click="deleteComment(comment.id)"
+                    >
+                      删除
+                    </el-button>
+                  </div>
+
+                  <!-- 回复表单 -->
+                  <div v-if="replyTo === comment.id" class="reply-form">
+                    <el-input
+                      v-model="replyComment.content"
+                      type="textarea"
+                      :rows="2"
+                      placeholder="写下你的回复..."
+                    />
+                    <div class="reply-actions">
+                      <el-button
+                        size="small"
+                        @click="submitReply(comment.id)"
+                        :disabled="!replyComment.content.trim()"
+                      >
+                        回复
+                      </el-button>
+                      <el-button size="small" @click="cancelReply"
+                        >取消</el-button
+                      >
+                    </div>
+                  </div>
+
+                  <!-- 子评论 -->
+                  <div
+                    v-if="comment.replies && comment.replies.length"
+                    class="replies"
+                  >
+                    <div
+                      v-for="reply in comment.replies"
+                      :key="reply.id"
+                      class="reply-item"
+                    >
+                      <div class="comment-header">
+                        <el-avatar
+                          :size="24"
+                          :src="getUserAvatar(reply.userId)"
+                        />
+                        <div class="comment-user-info">
+                          <span class="user-name">{{
+                            getUserName(reply.userId)
+                          }}</span>
+                          <span class="comment-time">{{
+                            formatDate(reply.createTime)
+                          }}</span>
+                        </div>
+                      </div>
+                      <div class="comment-content">{{ reply.content }}</div>
+                      <div class="comment-actions">
+                        <el-button
+                          size="small"
+                          @click="toggleLike(reply.id)"
+                          :type="commentLikes[reply.id] ? 'primary' : ''"
+                          :disabled="!currentUserId"
+                        >
+                          <el-icon><Star /></el-icon> {{ reply.likeCount }}
+                        </el-button>
+                        <el-button
+                          v-if="reply.userId === currentUserId"
+                          size="small"
+                          type="danger"
+                          @click="deleteComment(reply.id)"
+                        >
+                          删除
+                        </el-button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -269,6 +381,7 @@ import { useRouter, useRoute } from "vue-router";
 import { Star, ChatDotRound, Setting } from "@element-plus/icons-vue";
 import axios from "@/utils/filterAxios.js";
 import { ElMessage } from "element-plus";
+import dayjs from "dayjs";
 
 const router = useRouter();
 const route = useRoute();
@@ -288,7 +401,12 @@ const user = ref({
       "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"
     );
   }),
+  currentUserId: computed(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+    return storedUser.userId || null;
+  }),
 });
+const currentUserId = computed(() => user.value.currentUserId);
 
 // 处理个人中心点击
 const handleProfileClick = () => {
@@ -456,35 +574,220 @@ const getStatusTagType = (status) => {
 };
 
 // 讨论区
-const discussions = ref([
-  {
-    id: 1,
-    author: {
-      name: "用户A",
-      avatar:
-        "https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png",
-    },
-    time: "2天前",
-    title: "这个问题的最优解是什么？",
-    content:
-      "我尝试了几种方法，但都不是最优解，有没有人能分享一下更高效的解法？",
-    likes: 24,
-    comments: 8,
-  },
-  {
-    id: 2,
-    author: {
-      name: "用户B",
-      avatar:
-        "https://cube.elemecdn.com/9/c2/f0ee8a3c7c9638a54940382568c9dpng.png",
-    },
-    time: "1周前",
-    title: "关于边界条件的疑问",
-    content: "当输入为空数组时，应该返回什么？题目描述中没有明确说明这种情况。",
-    likes: 15,
-    comments: 5,
-  },
-]);
+const comments = ref([]);
+const newComment = ref({
+  problemId: Number(route.params.id),
+  userId: currentUserId.value,
+  content: "",
+  parentId: null,
+});
+const replyComment = ref({
+  problemId: Number(route.params.id),
+  userId: currentUserId.value,
+  content: "",
+  parentId: null,
+});
+const replyTo = ref(null);
+const commentLikes = ref({});
+
+// 获取用户信息
+const getUserAvatar = (userId) => {
+  // 实际项目中应从用户列表获取
+  return "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png";
+};
+
+const getUserName = (userId) => {
+  // 实际项目中应从用户列表获取
+  return `用户${userId}`;
+};
+
+const formatDate = (date) => {
+  return dayjs(date).format("YYYY-MM-DD HH:mm");
+};
+
+// 检查是否已点赞
+const isLiked = async (commentId) => {
+  const response = await axios.get(
+    `/comments/${commentId}/isliked?userId=${currentUserId.value}`
+  );
+  isLiked.value = response.data;
+  console.log("点赞状态:", response.data);
+  return isLiked.value;
+};
+
+const checkLikeStatus = async (commentId) => {
+  try {
+    const response = await axios.get(
+      `/comments/${commentId}/isliked?userId=${currentUserId.value}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("检查点赞状态失败:", error);
+    return false;
+  }
+};
+
+// 获取评论
+const fetchComments = async () => {
+  try {
+    const response = await axios.get(`/comments/problem/${route.params.id}`);
+    comments.value = response.data || [];
+    // 并行加载所有点赞状态
+    await Promise.all(
+      comments.value.map(async (comment) => {
+        commentLikes.value[comment.id] = await checkLikeStatus(comment.id);
+        if (comment.replies) {
+          await Promise.all(
+            comment.replies.map((reply) => {
+              commentLikes.value[reply.id] = checkLikeStatus(reply.id);
+            })
+          );
+        }
+      })
+    );
+  } catch (error) {
+    ElMessage.error("获取评论失败");
+  }
+};
+
+// 提交评论
+const submitComment = async () => {
+  if (!newComment.value.content.trim() || !currentUserId.value) return;
+
+  try {
+    const response = await axios.post("/comments", newComment.value);
+    comments.value.unshift(response.data);
+    newComment.value.content = "";
+    ElMessage.success("评论发表成功");
+  } catch (error) {
+    ElMessage.error("发表评论失败");
+    console.error("发表评论失败:", error);
+  }
+};
+
+// 显示回复表单
+const showReplyForm = (commentId) => {
+  if (!currentUserId.value) return;
+  replyTo.value = commentId;
+  replyComment.value.parentId = commentId;
+};
+
+// 取消回复
+const cancelReply = () => {
+  replyTo.value = null;
+  replyComment.value.content = "";
+  replyComment.value.parentId = null;
+};
+
+// 提交回复
+const submitReply = async (parentId) => {
+  if (!replyComment.value.content.trim()) return;
+
+  try {
+    const response = await axios.post("/comments", replyComment.value);
+
+    // 找到父评论并添加回复
+    const parentComment = findComment(comments.value, parentId);
+    if (parentComment) {
+      if (!parentComment.replies) {
+        parentComment.replies = [];
+      }
+      parentComment.replies.push(response.data);
+    }
+
+    cancelReply();
+    ElMessage.success("回复成功");
+  } catch (error) {
+    ElMessage.error("回复失败");
+    console.error("回复失败:", error);
+  }
+};
+
+// 删除评论
+const deleteComment = async (commentId) => {
+  try {
+    await axios.delete(`/comments/${commentId}?userId=${currentUserId.value}`);
+
+    // 从评论列表中移除
+    removeComment(comments.value, commentId);
+    ElMessage.success("评论已删除");
+  } catch (error) {
+    ElMessage.error("删除评论失败");
+    console.error("删除评论失败:", error);
+  }
+};
+
+// 点赞/取消点赞
+const toggleLike = async (commentId) => {
+  if (!currentUserId.value) return;
+
+  try {
+    const currentLikeStatus = commentLikes.value[commentId];
+
+    // 立即更新UI状态（乐观更新）
+    commentLikes.value[commentId] = !currentLikeStatus;
+    updateCommentLikeCount(commentId, currentLikeStatus ? -1 : 1);
+    if (currentLikeStatus) {
+      await axios.delete(
+        `/comments/${commentId}/unlike?userId=${currentUserId.value}`
+      );
+    } else {
+      await axios.post(
+        `/comments/${commentId}/like?userId=${currentUserId.value}`
+      );
+    }
+
+    // await fetchComments();
+  } catch (error) {
+    ElMessage.error("操作失败");
+    console.error("点赞操作失败:", error);
+  }
+};
+
+// 递归查找评论
+const findComment = (comments, id) => {
+  for (const comment of comments) {
+    if (comment.id === id) return comment;
+    if (comment.replies) {
+      const found = findComment(comment.replies, id);
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
+// 递归移除评论
+const removeComment = (comments, id) => {
+  for (let i = 0; i < comments.length; i++) {
+    if (comments[i].id === id) {
+      comments.splice(i, 1);
+      return true;
+    }
+    if (comments[i].replies) {
+      if (removeComment(comments[i].replies, id)) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+// 递归更新点赞数
+const updateCommentLikeCount = (commentId, increment) => {
+  const updateFn = (comments) => {
+    for (const comment of comments) {
+      if (comment.id === commentId) {
+        comment.likeCount += increment;
+        return true;
+      }
+      if (comment.replies?.length) {
+        if (updateFn(comment.replies)) return true;
+      }
+    }
+    return false;
+  };
+  updateFn(comments.value);
+};
 
 // 代码编辑器相关
 const languages = ref([
@@ -619,6 +922,7 @@ onMounted(() => {
   const problemId = Number(route.params.id);
   if (problemId) {
     fetchProblem(problemId);
+    fetchComments();
   } else {
     resetCode();
   }
@@ -920,6 +1224,108 @@ pre {
 .stderr pre {
   background-color: #fef0f0;
   color: #f56c6c;
+}
+
+.comment-section {
+  margin-top: 20px;
+}
+
+.comment-form {
+  margin-bottom: 20px;
+}
+
+.comment-form .el-button {
+  margin-top: 10px;
+}
+
+.comment-list {
+  margin-top: 15px;
+}
+
+.comment-item {
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.comment-user-info {
+  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.comment-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.comment-content {
+  margin: 8px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.comment-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.comment-actions .el-button {
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.reply-form {
+  margin: 10px 0 10px 40px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.replies {
+  margin-left: 40px;
+  border-left: 2px solid #eee;
+  padding-left: 10px;
+}
+
+.reply-item {
+  padding: 10px 0;
+  border-bottom: 1px dashed #eee;
+}
+
+.reply-item:last-child {
+  border-bottom: none;
+}
+
+.reply-item .comment-header {
+  margin-bottom: 5px;
+}
+
+.reply-item .comment-content {
+  margin: 5px 0;
+  font-size: 13px;
+}
+
+.reply-item .comment-actions {
+  margin-top: 5px;
 }
 </style>
 <style lang="scss" scoped></style>

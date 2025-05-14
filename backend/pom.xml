@@ -99,6 +99,11 @@
         	<version>4.0.1</version>
         	<scope>provided</scope>
     	</dependency>
+		<dependency>
+    		<groupId>com.baomidou</groupId>
+    		<artifactId>mybatis-plus-extension</artifactId>
+   	 		<version>3.5.3</version> <!-- Use the latest version -->
+		</dependency>
 	</dependencies>
 
 	<build>
