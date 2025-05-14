@@ -589,16 +589,37 @@ const replyComment = ref({
 });
 const replyTo = ref(null);
 const commentLikes = ref({});
+const userMap = ref({});
 
 // 获取用户信息
 const getUserAvatar = (userId) => {
-  // 实际项目中应从用户列表获取
-  return "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png";
+  return (
+    userMap.value[userId]?.avatar ||
+    "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png"
+  );
 };
 
 const getUserName = (userId) => {
-  // 实际项目中应从用户列表获取
-  return `用户${userId}`;
+  return userMap.value[userId]?.username
+    ? `用户${userMap.value[userId].username}`
+    : "加载中...";
+};
+
+// 批量获取用户信息
+const fetchUserBatch = async (userIds) => {
+  try {
+    const responses = await Promise.all(
+      userIds.map((id) => axios.get(`/user/selectById/${id}`))
+    );
+    responses.forEach((res) => {
+      userMap.value[res.data.userId] = {
+        username: res.data.username,
+        avatar: res.data.avatar, // 如果接口返回头像
+      };
+    });
+  } catch (error) {
+    console.error("批量获取用户失败:", error);
+  }
 };
 
 const formatDate = (date) => {
@@ -606,15 +627,6 @@ const formatDate = (date) => {
 };
 
 // 检查是否已点赞
-const isLiked = async (commentId) => {
-  const response = await axios.get(
-    `/comments/${commentId}/isliked?userId=${currentUserId.value}`
-  );
-  isLiked.value = response.data;
-  console.log("点赞状态:", response.data);
-  return isLiked.value;
-};
-
 const checkLikeStatus = async (commentId) => {
   try {
     const response = await axios.get(
@@ -632,6 +644,19 @@ const fetchComments = async () => {
   try {
     const response = await axios.get(`/comments/problem/${route.params.id}`);
     comments.value = response.data || [];
+
+    // 收集所有用户ID（包括回复的作者）
+    const userIds = new Set();
+    const collectUserIds = (commentList) => {
+      commentList.forEach((comment) => {
+        userIds.add(comment.userId);
+        if (comment.replies) collectUserIds(comment.replies);
+      });
+    };
+    collectUserIds(comments.value);
+
+    // 批量获取用户信息
+    await fetchUserBatch(Array.from(userIds));
 
     // 重置点赞状态，避免旧数据污染
     commentLikes.value = {};
@@ -661,6 +686,13 @@ const submitComment = async () => {
 
   try {
     const response = await axios.post("/comments", newComment.value);
+
+    // 确保新评论的用户信息在缓存中
+    if (!userMap.value[response.data.userId]) {
+      await fetchUserBatch([response.data.userId]);
+    }
+
+    // 更新评论列表
     comments.value.unshift(response.data);
     newComment.value.content = "";
     ElMessage.success("评论发表成功");
@@ -690,6 +722,11 @@ const submitReply = async (parentId) => {
 
   try {
     const response = await axios.post("/comments", replyComment.value);
+
+    // 确保回复的用户信息在缓存中
+    if (!userMap.value[response.data.userId]) {
+      await fetchUserBatch([response.data.userId]);
+    }
 
     // 找到父评论并添加回复
     const parentComment = findComment(comments.value, parentId);
