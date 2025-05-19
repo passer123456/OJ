@@ -150,7 +150,10 @@
                       回复
                     </el-button>
                     <el-button
-                      v-if="comment.userId === currentUserId"
+                      v-if="
+                        comment.userId === currentUserId ||
+                        user.role === 'admin'
+                      "
                       size="small"
                       type="danger"
                       @click="deleteComment(comment.id)"
@@ -216,7 +219,10 @@
                           <el-icon><Star /></el-icon> {{ reply.likeCount }}
                         </el-button>
                         <el-button
-                          v-if="reply.userId === currentUserId"
+                          v-if="
+                            reply.userId === currentUserId ||
+                            user.role === 'admin'
+                          "
                           size="small"
                           type="danger"
                           @click="deleteComment(reply.id)"
@@ -404,6 +410,10 @@ const user = ref({
   currentUserId: computed(() => {
     const storedUser = JSON.parse(localStorage.getItem("user")) || {};
     return storedUser.userId || null;
+  }),
+  role: computed(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+    return storedUser.role || "guest";
   }),
 });
 const currentUserId = computed(() => user.value.currentUserId);

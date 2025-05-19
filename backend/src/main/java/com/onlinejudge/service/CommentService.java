@@ -40,8 +40,8 @@ public class CommentService {
     
     // 删除评论
     @Transactional
-    public boolean deleteComment(Long id, Long userId) {
-        return commentMapper.deleteByIdAndUserId(id, userId) > 0;
+    public boolean deleteComment(Long id) {
+        return commentMapper.deleteById(id) > 0;
     }
     
     // 更新评论

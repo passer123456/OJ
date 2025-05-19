@@ -31,8 +31,8 @@ public class CommentController {
     
     // 删除评论
     @DeleteMapping("/{id}")
-    public Result deleteComment(@PathVariable Long id, @RequestParam Long userId) {
-        boolean deleted = commentService.deleteComment(id, userId);
+    public Result deleteComment(@PathVariable Long id) {
+        boolean deleted = commentService.deleteComment(id);
         if (!deleted) {
             return Result.error("Failed to delete comment or comment not found.");
         }

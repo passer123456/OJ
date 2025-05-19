@@ -23,7 +23,7 @@ public interface CommentMapper {
     List<Comment> selectRepliesByParentId(Long parentId);
     
     // 逻辑删除评论
-    int deleteByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
+    int deleteById(@Param("id") Long id);
     
     // 更新评论内容
     int updateContentByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId, @Param("content") String content);
