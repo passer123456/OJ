@@ -69,4 +69,16 @@ public class UserService {
     public void register(User user) {
         add(user);
     }
+
+    public void changePassword(Integer userId,String oldPassword ,String newPassword) {
+        User user = userMapper.selectById(userId);
+        if(user.getPassword() == null || !user.getPassword().equals(oldPassword)){
+            throw new CustomException("旧密码错误");
+        }
+        if(user.getPassword().equals(newPassword)){
+            throw new CustomException("新密码不能与旧密码相同");
+        }
+        user.setPassword(newPassword);
+        userMapper.updateById(user);
+    }
 }

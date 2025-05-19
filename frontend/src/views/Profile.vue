@@ -116,14 +116,14 @@
       <!-- 这里放置修改密码的表单 -->
       <el-form
         ref="passwordForm"
-        :model="passwordForm"
+        :model="passwordData"
         :rules="passwordRules"
         label-width="120px"
         class="password-form"
       >
         <el-form-item label="原密码" prop="oldPassword">
           <el-input
-            v-model="passwordForm.oldPassword"
+            v-model="passwordData.oldPassword"
             type="password"
             show-password
             placeholder="请输入当前密码"
@@ -132,7 +132,7 @@
 
         <el-form-item label="新密码" prop="newPassword">
           <el-input
-            v-model="passwordForm.newPassword"
+            v-model="passwordData.newPassword"
             type="password"
             show-password
             placeholder="请输入新密码"
@@ -141,7 +141,7 @@
 
         <el-form-item label="确认密码" prop="confirmPassword">
           <el-input
-            v-model="passwordForm.confirmPassword"
+            v-model="passwordData.confirmPassword"
             type="password"
             show-password
             placeholder="请再次输入新密码"
@@ -276,7 +276,7 @@ const triggerFileInput = () => {
 // 密码修改相关
 // 密码表单数据
 const isSubmitting = ref(false);
-const passwordForm = reactive({
+const passwordData = reactive({
   oldPassword: "",
   newPassword: "",
   confirmPassword: "",
@@ -291,22 +291,12 @@ const passwordRules = {
   newPassword: [
     { required: true, message: "请输入新密码", trigger: "blur" },
     { min: 3, max: 18, message: "长度在3到18个字符", trigger: "blur" },
-    {
-      validator: (rule, value, callback) => {
-        if (value === passwordForm.oldPassword) {
-          callback(new Error("新密码不能与原密码相同"));
-        } else {
-          callback();
-        }
-      },
-      trigger: "blur",
-    },
   ],
   confirmPassword: [
     { required: true, message: "请确认新密码", trigger: "blur" },
     {
       validator: (rule, value, callback) => {
-        if (value !== passwordForm.newPassword) {
+        if (value !== passwordData.newPassword) {
           callback(new Error("两次输入密码不一致"));
         } else {
           callback();
@@ -317,7 +307,7 @@ const passwordRules = {
   ],
 };
 
-// const passwordForm = ref(null);
+const passwordForm = ref(null);
 
 // 提交密码修改
 const submitPassword = () => {
@@ -327,23 +317,29 @@ const submitPassword = () => {
     isSubmitting.value = true;
 
     try {
-      await axios.post("/user/changepassword", {
-        userId: user.userId,
-        oldPassword: passwordForm.oldPassword,
-        newPassword: passwordForm.newPassword,
+      const res = await axios.post("/user/changePassword", null, {
+        params: {
+          userId: user.userId,
+          oldPassword: passwordData.oldPassword,
+          newPassword: passwordData.newPassword,
+        },
       });
 
-      ElMessage.success("密码修改成功");
-      resetPasswordForm();
+      if (res.code === 200) {
+        ElMessage.success("密码修改成功");
+        resetPasswordForm();
 
-      // 可选：修改成功后强制重新登录
-      // localStorage.removeItem('user');
-      // router.push('/login');
+        // 修改成功后强制重新登录
+        localStorage.removeItem("user");
+        router.push("/login");
+      } else {
+        ElMessage.error(res.msg);
+        return;
+      }
     } catch (error) {
-      console.error("密码修改失败:", error);
       let message = "密码修改失败";
-      if (error.response?.data?.message) {
-        message = error.response.data.message;
+      if (error.response?.data?.msg) {
+        message = error.response.data.msg;
       }
       ElMessage.error(message);
     } finally {

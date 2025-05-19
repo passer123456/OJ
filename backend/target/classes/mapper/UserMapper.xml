@@ -36,7 +36,7 @@
             <if test="password != null">password = #{password},</if>
             <if test="role != null">role = #{role},</if>
             <if test="avatar != null">avatar = #{avatar},</if>
-            <if test="bio != null">bio = #{bio}</if>
+            <if test="bio != null">bio = #{bio},</if>
         </set>
         WHERE user_id = #{userId}
     </update>

@@ -4,7 +4,7 @@ public class CustomException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
     private String message;
-    private Integer code = 500; // 默认错误码
+    private Integer code = 400; // 默认错误码
 
     public CustomException(String message) {
         super(message);

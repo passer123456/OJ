@@ -109,4 +109,20 @@ public class UserController {
             return Result.error(500, "注册失败: " + e.getMessage());
         }
     }
+
+    @PostMapping("/changePassword")
+    public Result changePassword(
+        @RequestParam Integer userId,
+        @RequestParam String oldPassword,
+        @RequestParam String newPassword
+    ) {
+        try{
+            userService.changePassword(userId,oldPassword,newPassword);
+            return Result.success("修改成功");
+        }
+        catch (CustomException e) {
+            return Result.error(401,e.getMessage());
+        }
+    }
+    
 }
