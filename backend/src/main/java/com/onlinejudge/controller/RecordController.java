@@ -11,6 +11,7 @@ import com.onlinejudge.utils.Result;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -75,5 +76,13 @@ public class RecordController {
     public Result getProblemById(@PathVariable int id) {
         Record record = recordService.selectById(id);
     return Result.success(record);
+    }
+
+    @GetMapping("/getStatus")
+    public Result getStatus(
+        @RequestParam(required = false) Integer userId
+    ) {
+        List<Map<String,Object>> statusList = recordService.getLatestRecord(userId);
+        return Result.success(statusList);
     }
 }

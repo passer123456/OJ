@@ -95,6 +95,27 @@
             </el-space>
           </template>
         </el-table-column>
+        <el-table-column prop="status" label="状态" width="120">
+          <template #default="{ row }">
+            <el-tag
+              :type="
+                row.status === 'accepted'
+                  ? 'success'
+                  : row.status === 'attempted'
+                  ? 'warning'
+                  : 'info'
+              "
+            >
+              {{
+                row.status === "accepted"
+                  ? "已通过"
+                  : row.status === "attempted"
+                  ? "尝试过"
+                  : "未开始"
+              }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="acRate" label="通过率" width="120">
           <template #default="{ row }"> {{ row.acRate }}% </template>
         </el-table-column>
@@ -152,33 +173,67 @@ const tagOptions = ref([
   "图",
 ]);
 
-const load = async () => {
+const fetchUserStatus = async () => {
   try {
-    const res = await axios.get("/problem/selectPage", {
+    const res = await axios.get("/record/getStatus", {
       params: {
-        keyword: filterParams.value.keyword,
-        difficulty: filterParams.value.difficulty,
-        tag: filterParams.value.tag,
-        pageNum: pagination.currentPage,
-        pageSize: pagination.pageSize,
+        userId: JSON.parse(localStorage.getItem("user")).userId,
       },
     });
+    return res.data;
+  } catch (error) {
+    console.error("获取用户提交状态失败:", error);
+    return [];
+  }
+};
 
-    // 正确的数据访问方式
-    pagination.total = res.data.total; // 直接访问res.data.total
-    pagination.currentPage = res.data.pageNum || 1;
+const load = async () => {
+  try {
+    // 并行获取题目列表和用户状态
+    const [problemsRes, statusRes] = await Promise.all([
+      axios.get("/problem/selectPage", {
+        params: {
+          keyword: filterParams.value.keyword,
+          difficulty: filterParams.value.difficulty,
+          tag: filterParams.value.tag,
+          pageNum: pagination.currentPage,
+          pageSize: pagination.pageSize,
+        },
+      }),
+      fetchUserStatus(),
+    ]);
 
-    problemList.value = res.data.list || [];
+    // 处理题目列表
+    let problems = problemsRes.data.list || [];
 
-    // 转换tags为数组
-    problemList.value = problemList.value.map((item) => ({
+    // 转换tags为数组并计算通过率
+    problems = problems.map((item) => ({
       ...item,
       tags: item.tags ? item.tags.split(/[,，]/) : [],
       acRate:
         item.submitCount > 0
           ? Math.round((item.acceptCount / item.submitCount) * 100)
           : 0,
+      status: "unattempted", // 默认状态
     }));
+
+    // 映射用户提交状态
+    if (statusRes && statusRes.length > 0) {
+      problems.forEach((problem) => {
+        const userStatus = statusRes.find(
+          (status) => status.problemId === problem.problemid
+        );
+        if (userStatus) {
+          problem.status =
+            userStatus.status === "solved"
+              ? "accepted" // 对应已通过
+              : "attempted"; // 对应未通过（但尝试过）
+        }
+      });
+    }
+
+    problemList.value = problems;
+    pagination.total = problemsRes.data.total;
   } catch (error) {
     console.error("加载问题列表失败:", error);
     ElMessage.error("加载问题列表失败");

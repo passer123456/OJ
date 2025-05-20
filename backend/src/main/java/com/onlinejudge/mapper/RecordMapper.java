@@ -22,4 +22,8 @@ public interface RecordMapper {
 
     // 根据ID查询
     Record selectById(int id);
+
+    List<Record> getLatestRecordsByUserId(
+        @Param("userId") Integer userId
+    );
 }

@@ -773,9 +773,9 @@ const deleteComment = async (commentId) => {
 const toggleLike = async (commentId) => {
   if (!currentUserId.value) return;
 
-  try {
-    const currentLikeStatus = commentLikes.value[commentId];
+  const currentLikeStatus = commentLikes.value[commentId];
 
+  try {
     // 立即更新UI状态（乐观更新）
     commentLikes.value[commentId] = !currentLikeStatus;
     updateCommentLikeCount(commentId, currentLikeStatus ? -1 : 1);
@@ -792,7 +792,8 @@ const toggleLike = async (commentId) => {
     // await fetchComments();
   } catch (error) {
     ElMessage.error("操作失败");
-    console.error("点赞操作失败:", error);
+    commentLikes.value[commentId] = currentLikeStatus;
+    updateCommentLikeCount(commentId, currentLikeStatus ? 1 : -1);
   }
 };
 

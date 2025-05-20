@@ -1,6 +1,7 @@
 package com.onlinejudge.service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
@@ -11,9 +12,12 @@ import com.onlinejudge.mapper.RecordMapper;
 import com.onlinejudge.utils.Task;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.HashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 
 @Service
 public class RecordService {
@@ -64,5 +68,20 @@ public class RecordService {
 
     public Record selectById(int id) {
         return recordMapper.selectById(id);
+    }
+
+    public List<Map<String, Object>> getLatestRecord(int userId) {
+        List<Record> records = recordMapper.getLatestRecordsByUserId(userId);
+        if (records.isEmpty()) {
+            return null;
+        }
+        return records.stream()
+            .map(record -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("problemId", record.getProblemId());
+                map.put("status", record.getResult());
+                return map;
+            })
+            .collect(Collectors.toList()); // 收集成 List
     }
 }

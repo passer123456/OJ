@@ -2,6 +2,18 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
     "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.onlinejudge.mapper.RecordMapper">
+    <resultMap id="RecordResultMap" type="com.onlinejudge.entity.Record">
+        <id property="submitId" column="submit_id" />
+        <result property="problemId" column="problem_id" />
+        <result property="userId" column="user_id" />
+        <result property="code" column="code" />
+        <result property="language" column="language" />
+        <result property="score" column="score" />
+        <result property="memory" column="memory" />
+        <result property="time" column="time" />
+        <result property="submitTime" column="submit_time" />
+        <result property="result" column="result" />
+    </resultMap>
     <select id="selectPage" resultType="com.onlinejudge.entity.Record">
         SELECT * FROM submitrecorddata
         <where>
@@ -25,5 +37,32 @@
     </delete>
     <select id="selectById" resultType="com.onlinejudge.entity.Record">
         SELECT * FROM submitrecorddata WHERE submitId = #{submitId}
+    </select>
+    <select id="selectLatestRecordByUserIdAndProblemId" resultType="com.onlinejudge.entity.Record">
+        SELECT * FROM submitrecorddata 
+        WHERE user_id = #{userId} AND problem_id = #{problemId}
+        ORDER BY submit_time DESC
+        LIMIT 1
+    </select>
+    <select id="getLatestRecordsByUserId" resultMap="RecordResultMap">
+        SELECT 
+            submit_id,
+            problem_id,
+            user_id,
+            code,
+            language,
+            score,
+            memory,
+            time,
+            submit_time,
+            result
+        FROM (
+            SELECT 
+                *,
+                ROW_NUMBER() OVER (PARTITION BY problem_id ORDER BY submit_time DESC) as rn
+            FROM submitrecorddata
+            WHERE user_id = #{userId}
+        ) t
+        WHERE t.rn = 1
     </select>
 </mapper>
