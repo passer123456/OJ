@@ -24,20 +24,44 @@ public class CommentService {
         return commentMapper.selectById(comment.getId());
     }
     
-    // 获取问题下的评论树
+    // 获取问题下的评论树（二级评论）
+    // public List<Comment> getCommentTreeByProblemId(Long problemId) {
+    //     // 获取顶级评论
+    //     List<Comment> topLevelComments = commentMapper.selectTopLevelByProblemId(problemId);
+        
+    //     // 为每个顶级评论获取子评论
+    //     return topLevelComments.stream()
+    //             .peek(comment -> {
+    //                 List<Comment> replies = commentMapper.selectRepliesByParentId(comment.getId());
+    //                 comment.setReplies(replies);
+    //             })
+    //             .collect(Collectors.toList());
+    // }
+
+    // 获取问题下的评论树 - 递归方式
     public List<Comment> getCommentTreeByProblemId(Long problemId) {
         // 获取顶级评论
         List<Comment> topLevelComments = commentMapper.selectTopLevelByProblemId(problemId);
         
-        // 为每个顶级评论获取子评论
+        // 为每个顶级评论递归获取子评论
         return topLevelComments.stream()
-                .peek(comment -> {
-                    List<Comment> replies = commentMapper.selectRepliesByParentId(comment.getId());
-                    comment.setReplies(replies);
-                })
+                .peek(comment -> buildCommentTree(comment))
                 .collect(Collectors.toList());
     }
     
+    // 递归构建评论树
+    private void buildCommentTree(Comment comment) {
+        // 获取直接子评论
+        List<Comment> replies = commentMapper.selectRepliesByParentId(comment.getId());
+        
+        if (!replies.isEmpty()) {
+            comment.setReplies(replies);
+            // 递归处理每个子评论
+            replies.forEach(this::buildCommentTree);
+        }
+    }
+
+
     // 删除评论
     @Transactional
     public boolean deleteComment(Long id) {
