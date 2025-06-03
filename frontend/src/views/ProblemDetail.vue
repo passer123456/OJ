@@ -624,7 +624,7 @@ const fetchUserBatch = async (userIds) => {
     responses.forEach((res) => {
       userMap.value[res.data.userId] = {
         username: res.data.username,
-        avatar: res.data.avatar, // 如果接口返回头像
+        avatar: res.data.avatar,
       };
     });
   } catch (error) {
